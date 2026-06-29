@@ -1,54 +1,132 @@
-# Nobeth Demo AI Chatbot
+# 🤖 Minimal AI Chatbot API
 
-Welcome to the **Nobeth Demo AI Chatbot**! This project is a simple, end-to-end web application designed specifically for students with **zero coding knowledge**. It shows how a web browser, a backend server, and an Artificial Intelligence (AI) model connect to build a real-world chatbot.
+Welcome to the **Minimal AI Chatbot API**! This project is a simple, end-to-end backend web application designed specifically for students with **zero coding knowledge**.
+
+The goal of this project is to show you how a web server (backend) accepts input data in JSON format, communicates with an Artificial Intelligence (AI) service, and returns the result as a JSON response.
+
+---
+
+## 📂 Project Structure & File Purposes
+
+Here are the files in this project and what they do:
+
+```text
+Nobeth-AI-chatbot-demo/
+│
+├── .env                  # 🔒 Secret file: Stores your private Groq API key.
+├── .gitignore            # 🙈 Git controller: Tells Git to ignore .env and virtual environments.
+├── requirements.txt      # 📦 Package list: Lists the Python libraries our project needs.
+├── app.py                # 🐍 Application core: The main backend code and API logic.
+└── README.md             # 📖 This guide: Explains how the project works and how to run it.
+```
 
 ---
 
 ## ⚡ End-to-End Workflow
 
-Here is how the entire system connects and works when you send a message:
+Here is how the API works under the hood when you send a request:
 
 ```mermaid
 flowchart TD
-    subgraph Frontend ["🎨 Frontend Browser (HTML/CSS/JS)"]
-        A["👤 User types message & clicks 'Send'"] --> B["⚙️ JavaScript captures text"]
-        B --> C["📤 fetch() sends prompt to /ask API"]
-        G["📥 receives JSON response"] --> H["💬 Renders bubble on screen"]
+    subgraph Browser ["🌐 Interactive Documentation (http://127.0.0.1:8080/docs)"]
+        A["👤 Student types prompt under POST /ask"] --> B["📤 Clicks 'Execute' to send JSON request"]
+        F["📥 Receives and displays JSON response"]
     end
 
-    subgraph Backend ["🐍 Backend Server (FastAPI)"]
-        C --> D["📥 FastAPI receives data"]
-        D --> E["🤖 Calls Groq SDK with prompt"]
-        F["📤 Sends JSON answer back"] --> G
+    subgraph Server ["🐍 Backend Server (FastAPI)"]
+        B --> C["📥 FastAPI receives the prompt"]
+        C --> D["🤖 FastAPI calls Groq Cloud SDK"]
+        E["📤 Packages text reply as JSON"] --> F
     end
 
-    subgraph External ["☁️ AI Service (Groq Cloud)"]
-        E -->|Groq API Key + Prompt| AI["🧠 llama-3.3-70b-versatile Model"]
-        AI -->|Generates text answer| F
+    subgraph AI_Cloud ["☁️ AI Service (Groq Cloud)"]
+        D -->|API Key + Prompt| Llama["🧠 llama-3.3-70b-versatile Model"]
+        Llama -->|Generates text answer| E
     end
 
-    style Frontend fill:#1e1e2f,stroke:#6366f1,stroke-width:2px,color:#fff
-    style Backend fill:#161825,stroke:#a855f7,stroke-width:2px,color:#fff
-    style External fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#fff
+    style Browser fill:#1e1e2f,stroke:#6366f1,stroke-width:2px,color:#fff
+    style Server fill:#161825,stroke:#a855f7,stroke-width:2px,color:#fff
+    style AI_Cloud fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#fff
 ```
 
+### Step-by-Step Breakdown:
+1. **Student Action**: You open the interactive docs page (`/docs`) in your browser, type a prompt (e.g., `"Explain photosynthesis"`), and click **Execute**.
+2. **The Request**: Your browser sends a `POST` request containing a JSON body `{ "prompt": "Explain photosynthesis" }` to our backend server.
+3. **The Server**: FastAPI receives the prompt, checks that it is not empty, and sends it over to Groq's super-fast AI servers using the **Groq Python SDK**.
+4. **The AI**: Groq's AI model (`llama-3.3-70b-versatile`) processes the prompt and generates a text response.
+5. **The Response**: FastAPI gets the text response back, packs it into a JSON object `{"response": "..."}`, and sends it back to your browser.
+
 ---
 
-## 🐍 Backend Functions & Parameters (`app.py`)
+## 🚀 Setup Guide from Scratch (For New Users)
 
-The backend is built using **FastAPI** (Python). Think of the backend like a **restaurant waiter**—it takes your order (prompt), runs to the kitchen (Groq AI), and brings back your food (AI response).
+Follow these steps to set up and run this project on any new computer:
 
-### Key Functions & Routes
+### Step 1: Download (Pull) the Repository
+Open your terminal (PowerShell or Command Prompt) and run:
+```bash
+git clone https://github.com/sankaran-s2001/Nobeth-AI-chatbot-demo.git
+cd Nobeth-AI-chatbot-demo
+```
 
-| Route / Code | Function Name | Input Parameters | What it returns (Output) | What it does (Simple Explanation) |
+### Step 2: Create a New Virtual Environment
+A virtual environment keeps our project libraries separated from other projects on your computer.
+```bash
+python -m venv venv
+```
+
+### Step 3: Activate the Virtual Environment
+Activate it based on your operating system:
+* **Windows (PowerShell)**:
+  ```powershell
+  .\venv\Scripts\Activate.ps1
+  ```
+* **Windows (Command Prompt)**:
+  ```cmd
+  venv\Scripts\activate.bat
+  ```
+* **macOS / Linux**:
+  ```bash
+  source venv/bin/activate
+  ```
+
+### Step 4: Install the Required Packages
+Install all libraries listed in the `requirements.txt` file:
+```bash
+pip install -r requirements.txt
+```
+
+### Step 5: Configure the API Key
+1. Create a new file named `.env` in the root of the project directory.
+2. Open the `.env` file in your text editor and add the following line, replacing the placeholder with your actual Groq API key:
+   ```text
+   GROQ_API_KEY=your_groq_api_key_here
+   ```
+
+### Step 6: Start the Server
+```bash
+uvicorn app:app --reload --port 8080
+```
+
+### Step 7: Open the Interactive UI
+Open your browser and navigate to:
+👉 **[http://127.0.0.1:8080/docs](http://127.0.0.1:8080/docs)**
+
+---
+
+## 📜 Code Reference Guide (Functions & Parameters)
+
+Here is a breakdown of the code functions inside `app.py`:
+
+| Route / Endpoint | Function Name | Input Parameters | What it returns (Output) | What it does (Simple Explanation) |
 | :--- | :--- | :--- | :--- | :--- |
-| **`GET /`** | `get_home_page` | `request: Request` <br>*(The incoming web visit request)* | The HTML page (`index.html`) | **The Welcome Screen**: When you visit `http://127.0.0.1:8080`, this function serves the visual webpage to your browser. |
-| **`POST /ask`** | `ask_ai` | `request_data: AskRequest` <br>*(A JSON object containing the user's prompt)* | A JSON object:<br>`{"response": "AI reply text"}` | **The Brain Connector**: Receives your question, forwards it to Groq's AI, gets the response, and sends it back to the browser. |
+| **`GET /`** | `welcome_message` | *None* | A JSON object:<br>`{"message": "...", "instructions": "..."}` | **The Welcome Route**: When you visit `http://127.0.0.1:8080/`, it outputs simple instructions on how to test the API. |
+| **`POST /ask`** | `ask_ai` | `request_data: AskRequest` <br>*(A JSON object containing the user's prompt)* | A JSON object:<br>`{"response": "AI text answer"}` | **The Chat Handler**: Receives your question, forwards it to Groq's AI, gets the response, and sends it back to the browser. |
 
 ---
 
-### 🤖 The Groq AI SDK Call (Under the Hood)
-Inside the `ask_ai` function, we communicate with the AI using this code:
+### 🤖 The Groq AI SDK Call
+Inside the `ask_ai` function, we ask Groq to generate a response using this code:
 ```python
 completion = groq_client.chat.completions.create(
     model="llama-3.3-70b-versatile",
@@ -60,41 +138,11 @@ completion = groq_client.chat.completions.create(
 ```
 
 #### What do these parameters mean?
-* **`model="llama-3.3-70b-versatile"`**: The specific AI model we are using. It is a highly intelligent text-based AI.
-* **`messages`**: A list of instructions for the AI:
-  * **`system`**: Sets the AI's personality/behavior (e.g., "be concise and friendly").
-  * **`user`**: The actual question the student typed in the browser.
-* **`completion.choices[0].message.content`**: How we extract the raw text answer generated by the AI from the data package returned by Groq.
-
----
-
-## 🎨 Frontend JavaScript Functions (`index.html`)
-
-The frontend contains **JavaScript** to handle interactions. JavaScript makes our page dynamic and alive, responding to clicks and keystrokes instantly.
-
-### JavaScript Functions
-
-| Function Name | Parameters | What it does (Simple Explanation) |
-| :--- | :--- | :--- |
-| **`appendMessage(text, sender)`** | `text` *(the message string)*<br>`sender` *(either 'user' or 'ai')* | **Draws a Bubble**: Dynamically creates a new HTML chat bubble on the screen. If `sender` is `'user'`, it colors it Purple/Indigo and aligns it to the right. If `'ai'`, it colors it Slate Grey and aligns it to the left. It also auto-scrolls the chat window to the bottom. |
-| **`appendLoader()`** | *None* | **Shows Loading**: Appends a temporary bubble containing three pulsing dots to let the user know the AI is "thinking". Returns a reference to the element so we can delete it later. |
-| **`sendMessage()`** | *None* | **The Orchestrator**: <br>1. Reads the text box.<br>2. Adds the user's chat bubble to the screen.<br>3. Clears the text box & disables typing.<br>4. Shows the pulsing dots loader.<br>5. Uses `fetch()` to call the backend `/ask`. <br>6. Deletes the loader and displays the AI's final answer. |
-
----
-
-### 📥 The Fetch API Request
-Inside the `sendMessage` function, JavaScript communicates with the backend using this call:
-```javascript
-const response = await fetch("/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: promptText })
-});
-```
-* **`fetch("/ask")`**: Sends an HTTP request to our backend server's `/ask` URL endpoint.
-* **`method: "POST"`**: Indicates we are *sending* data (the prompt) to the server rather than just asking for data.
-* **`headers`**: Tells the server we are sending data formatted in JSON.
-* **`body`**: Converts our JavaScript object `{ prompt: promptText }` into a text string so it can travel across the network.
+* **`model="llama-3.3-70b-versatile"`**: The specific AI model we want to run.
+* **`messages`**: Instructions for the AI:
+  * **`system`**: Sets the AI's behavior/personality.
+  * **`user`**: The actual question the student typed.
+* **`completion.choices[0].message.content`**: Extracts the generated text response out of the larger API response object.
 
 ---
 
@@ -103,10 +151,10 @@ const response = await fetch("/ask", {
 > [!TIP]
 > Use these analogies to understand the concepts if you are completely new to programming!
 
-* **🌐 Frontend**: **The Restaurant Dining Room**. It is the beautiful, decorated environment where customers sit, read the menu (UI), and enjoy the experience.
 * **⚙️ Backend**: **The Restaurant Kitchen**. It is hidden behind doors. The chef prepares meals, manages ingredients (data), and handles the heavy lifting.
-* **🌉 API (Application Programming Interface)**: **The Waiter**. The waiter takes your order from the dining room (frontend), carries it to the kitchen (backend), and returns with your food (response).
-* **📦 JSON**: **The Serving Tray**. A standardized tray used to carry data back and forth across the restaurant in a clean, organized manner.
+* **🌉 API (Application Programming Interface)**: **The Waiter**. The waiter takes your order from the table, carries it to the kitchen (backend), and returns with your food (response).
+* **📥 Endpoint (`/ask`)**: **A Specific Item on the Menu**. It is a specific web address that accepts inputs to perform a specific action (like getting an AI response).
+* **📦 JSON**: **The Serving Tray**. A standardized format used to carry structured data back and forth over the internet.
 * **🛠️ SDK (Software Development Kit)**: **A Pre-packaged Recipe Box**. It provides pre-made ingredients and tools so developers don't have to write complex connection code from scratch.
 * **🧠 LLM (Large Language Model)**: **The Smart Chef**. A computer model trained on millions of pages of text to understand human prompts and write human-like replies.
-* **🔒 Environment Variables (`.env`)**: **The Restaurant Safe**. A secure place to lock away secret recipes and keys (like API Keys) so they aren't left lying around in the open.
+* **🔒 Environment Variables (`.env`)**: **The Restaurant Safe**. A secure place to lock away secret API keys so they aren't left lying around in the open.

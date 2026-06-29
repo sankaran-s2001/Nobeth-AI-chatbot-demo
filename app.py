@@ -1,113 +1,105 @@
 import os
-# The "os" module is part of Python's standard library. We use it to read environment variables (like our API key).
+# We use the "os" library to read settings (like our API key) stored on our computer.
 from dotenv import load_dotenv
-# "dotenv" allows us to read key-value pairs from a file named ".env" and set them as environment variables.
-# This is a secure way to store API keys without uploading them to GitHub.
-from fastapi import FastAPI, Request, HTTPException
-# "FastAPI" is the main framework class.
-# "Request" is used to represent incoming HTTP requests.
-# "HTTPException" allows us to return HTTP errors (like 400 or 500) with custom messages.
-from fastapi.templating import Jinja2Templates
-# "Jinja2Templates" helps FastAPI search for and render HTML files in our project.
+# "dotenv" loads the key-value pairs from our ".env" file so Python can read them.
+from fastapi import FastAPI, HTTPException
+# "FastAPI" is the library we use to create our web API.
+# "HTTPException" lets us return error messages (like 400 or 500) if something goes wrong.
 from pydantic import BaseModel
-# "BaseModel" is used to define and validate the structure of JSON data sent to our API.
+# "BaseModel" helps us define what our incoming JSON request should look like.
 from groq import Groq
-# "Groq" is the official SDK provided by Groq to interact with their high-speed AI models.
+# "Groq" is the official client library used to talk to Groq's high-speed AI models.
 
 # ==========================================
 # 1. LOAD CONFIGURATION & ENVIRONMENT FILES
 # ==========================================
-# Look for a file named ".env" in the same directory and load its key-value pairs.
+# Load variables from the .env file in the same directory.
 load_dotenv()
 
-# Retrieve the Groq API key from the environment.
+# Get the Groq API key from the environment.
 groq_api_key = os.getenv("GROQ_API_KEY")
-
-# Check if the API key exists. If not, print a warning to help the student debug.
-if not groq_api_key:
-    print("\n[WARNING] GROQ_API_KEY is not set in your .env file!")
-    print("Please make sure you have a .env file with: GROQ_API_KEY=your_key_here\n")
 
 # ==========================================
 # 2. INITIALIZE SERVICES (FastAPI & Groq)
 # ==========================================
-# Create our FastAPI application instance. This instance handles our routes and starts the server.
+# Create the FastAPI app instance.
+# This is our main web application that listens for incoming visits and requests.
 app = FastAPI(
-    title="Nobeth Demo AI Chatbot",
-    description="A beginner-friendly AI Chatbot built using FastAPI and Groq Cloud.",
+    title="Minimal AI Chatbot API",
+    description="""
+### 🌟 Welcome Student! 
+This page lets you test our AI Chatbot API. Follow these simple steps to try it out:
+
+1. Click on the green **POST /ask** bar below.
+2. Click the **Try it out** button on the right.
+3. Change the text in the prompt box (for example: `"Explain photosynthesis"`).
+4. Click the blue **Execute** button.
+5. Scroll down to the **Server response** area to see the AI's reply in JSON format!
+    """,
     version="1.0.0"
 )
 
-# Set up the folder where our HTML templates reside.
-# Here we specify the folder "templates" which we will create next.
-templates = Jinja2Templates(directory="templates")
-
-# Initialize the Groq client with the API key we loaded from .env.
-# If the API key is empty, we set groq_client to None so we can handle it later without crashing immediately.
+# Initialize the Groq AI client with our API key.
+# We wrap this in a try-except block so that the app won't crash if the key is missing.
 try:
     groq_client = Groq(api_key=groq_api_key)
 except Exception as e:
-    print(f"[ERROR] Failed to initialize Groq client: {e}")
+    print(f"Error starting Groq client: {e}")
     groq_client = None
 
 # ==========================================
 # 3. DEFINE DATA MODELS (Pydantic)
 # ==========================================
-# When the frontend sends a POST request to '/ask', it sends data in JSON format: {"prompt": "user prompt here"}
-# We define a Pydantic model so FastAPI knows exactly what keys and data types to expect and validate.
+# When someone sends a request to our chatbot, they must send a JSON body containing a "prompt" text.
+# Example: { "prompt": "What is 2 + 2?" }
 class AskRequest(BaseModel):
-    prompt: str  # We expect a key named "prompt" containing a string (text)
+    prompt: str  # We expect a string key named "prompt"
 
 # ==========================================
-# 4. DEFINE WEB SERVER ROUTES
+# 4. DEFINE WEB SERVER API ROUTES
 # ==========================================
 
-# --- GET ROUTE (Renders the Chat Room UI) ---
-# When a user visits the root URL (http://127.0.0.1:8000/), this function runs.
-# It uses Jinja2 to render the "index.html" file inside the "templates" folder.
+# --- GET ROUTE (Root Welcome Message) ---
+# When you open "http://127.0.0.1:8080/" in your web browser, this function runs.
+# It returns a simple welcome message in JSON format.
 @app.get("/")
-def get_home_page(request: Request):
-    # "templates.TemplateResponse" renders our HTML file and passes the "request" context, 
-    # which is required by FastAPI to manage the client connection.
-    # Note: Modern FastAPI/Starlette uses the keyword argument signature: TemplateResponse(request=request, name="index.html")
-    return templates.TemplateResponse(request=request, name="index.html")
+def welcome_message():
+    return {
+        "message": "Welcome to the minimal AI Chatbot API!",
+        "instructions": "To test this API, open your browser and go to http://127.0.0.1:8080/docs where you can try it out interactively."
+    }
 
 
 # --- POST ROUTE (Sends user prompt to Groq AI) ---
-# When the browser submits the user's message, it sends a POST request to "/ask" with a JSON body.
-# FastAPI automatically validates this body against our "AskRequest" model above.
+# This is the actual endpoint that accepts a user prompt, sends it to the Groq AI, and returns the response.
 @app.post("/ask")
 def ask_ai(request_data: AskRequest):
     # 1. Check if the Groq API key is set
     if not groq_api_key or not groq_client:
         raise HTTPException(
             status_code=500,
-            detail="Groq API Key is missing or invalid. Please check your .env file."
+            detail="Groq API Key is missing. Please set GROQ_API_KEY in your .env file."
         )
 
-    # 2. Extract and clean the prompt sent by the user
+    # 2. Clean the input prompt text by removing unnecessary spaces
     user_prompt = request_data.prompt.strip()
 
-    # 3. Check if the user prompt is empty or just spaces
+    # 3. Check if the prompt is empty
     if not user_prompt:
         raise HTTPException(
             status_code=400,
-            detail="The prompt cannot be empty. Please enter a valid message."
+            detail="The prompt cannot be empty. Please enter a question."
         )
 
     try:
-        # 4. Request a text completion from Groq
-        # We call the completion API synchronously (which means we wait for the response to finish before continuing).
-        # We are using the requested "llama-3.3-70b-versatile" model.
+        # 4. Request a text completion from Groq's Llama model
         completion = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                # System role: Sets the behavior, tone, or instructions for the AI.
                 {
                     "role": "system",
-                    "content": "You are a helpful, friendly, and concise AI chat assistant. Format your replies clearly."
+                    "content": "You are a helpful, friendly, and concise AI assistant."
                 },
-                # User role: Represents the actual question or input from the student/user.
                 {
                     "role": "user",
                     "content": user_prompt
@@ -115,17 +107,15 @@ def ask_ai(request_data: AskRequest):
             ]
         )
 
-        # 5. Extract the text message generated by the AI
+        # 5. Extract the text answer generated by the AI
         ai_response = completion.choices[0].message.content
 
-        # 6. Return the response as a JSON dictionary: {"response": "AI's text answer"}
-        # FastAPI automatically converts Python dictionaries into JSON formatting.
+        # 6. Return the response as JSON: { "response": "AI's text answer" }
         return {"response": ai_response}
 
     except Exception as e:
-        # If anything goes wrong (e.g. network failure, invalid key, rate limits),
-        # return a server error (HTTP 500) explaining what happened.
+        # If the API call fails, return an HTTP 500 server error
         raise HTTPException(
             status_code=500,
-            detail=f"An error occurred while generating a response: {str(e)}"
+            detail=f"Failed to communicate with Groq AI: {str(e)}"
         )
