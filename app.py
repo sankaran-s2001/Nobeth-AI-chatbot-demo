@@ -2,7 +2,7 @@ import os
 # We use the "os" library to read settings (like our API key) stored on our computer.
 from dotenv import load_dotenv
 # "dotenv" loads the key-value pairs from our ".env" file so Python can read them.
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 # "FastAPI" is the library we use to create our web API.
 # "HTTPException" lets us return error messages (like 400 or 500) if something goes wrong.
 from pydantic import BaseModel
@@ -60,13 +60,15 @@ class AskRequest(BaseModel):
 # ==========================================
 
 # --- GET ROUTE (Root Welcome Message) ---
-# When you open "http://127.0.0.1:8080/" in your web browser, this function runs.
-# It returns a simple welcome message in JSON format.
+# When you open the API in your web browser, this function runs.
+# It dynamically checks the web address (local or live) and returns a welcome JSON message.
 @app.get("/")
-def welcome_message():
+def welcome_message(request: Request):
+    # We dynamically get the current website address (e.g. localhost or onrender.com) and add '/docs' to it
+    docs_url = f"{request.base_url}docs"
     return {
         "message": "Welcome to the minimal AI Chatbot API!",
-        "instructions": "To test this API, open your browser and go to http://127.0.0.1:8080/docs where you can try it out interactively."
+        "instructions": f"To test this API, open your browser and go to {docs_url} where you can try it out interactively."
     }
 
 
