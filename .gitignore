@@ -1,0 +1,18 @@
+# Ignore the environment variables file containing API keys
+.env
+
+# Ignore virtual environments
+nobeth_demo_chat_ai/
+venv/
+.venv/
+env/
+
+# Ignore Python cache directories and files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore local editor configuration
+.vscode/
+.idea/
