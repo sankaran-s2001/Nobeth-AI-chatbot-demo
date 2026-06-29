@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 # "FastAPI" is the library we use to create our web API.
 # "HTTPException" lets us return error messages (like 400 or 500) if something goes wrong.
+from fastapi.responses import RedirectResponse
+# "RedirectResponse" lets us automatically redirect visitors from the root "/" path to the interactive docs "/docs".
 from pydantic import BaseModel
 # "BaseModel" helps us define what our incoming JSON request should look like.
 from groq import Groq
@@ -59,17 +61,12 @@ class AskRequest(BaseModel):
 # 4. DEFINE WEB SERVER API ROUTES
 # ==========================================
 
-# --- GET ROUTE (Root Welcome Message) ---
-# When you open the API in your web browser, this function runs.
-# It dynamically checks the web address (local or live) and returns a welcome JSON message.
+# --- GET ROUTE (Redirect to interactive documentation) ---
+# When you open the API in your web browser (at the root "/"), this function runs.
+# It automatically redirects the visitor to the "/docs" page so they see the interactive UI immediately.
 @app.get("/")
-def welcome_message(request: Request):
-    # We dynamically get the current website address (e.g. localhost or onrender.com) and add '/docs' to it
-    docs_url = f"{request.base_url}docs"
-    return {
-        "message": "Welcome to the minimal AI Chatbot API!",
-        "instructions": f"To test this API, open your browser and go to {docs_url} where you can try it out interactively."
-    }
+def welcome_message():
+    return RedirectResponse(url="/docs")
 
 
 # --- POST ROUTE (Sends user prompt to Groq AI) ---
