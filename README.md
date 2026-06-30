@@ -58,6 +58,56 @@ flowchart TD
 
 ---
 
+## 🔌 API Endpoints & Workflow Structure
+
+For a quick reference on how our API handles data, review the clean structure below:
+
+### 1. API Endpoints
+| Method | Endpoint | Purpose | Description |
+| :--- | :--- | :--- | :--- |
+| **`GET`** | **`/`** | **User Redirect** | Automatically redirects any visitor from the root URL to the interactive Swagger UI (`/docs`) page. |
+| **`POST`** | **`/ask`** | **AI Inference Handler** | Accepts a user prompt in JSON format, calls the Groq Cloud AI SDK, and returns the AI's response in JSON. |
+
+### 2. Request & Response Payload Structure
+* **POST `/ask` Request JSON**:
+  ```json
+  {
+    "prompt": "What is photosynthesis?"
+  }
+  ```
+* **POST `/ask` Response JSON**:
+  ```json
+  {
+    "response": "Photosynthesis is the process by which plants convert sunlight into energy..."
+  }
+  ```
+
+### 3. Step-by-Step System Workflow
+```text
+[ Browser / Client ] 
+       │ 
+       ├─ (1) Sends POST request to '/ask' with {"prompt": "user question"}
+       │
+[ FastAPI Server (app.py) ]
+       │
+       ├─ (2) Validates the request JSON using the Pydantic schema
+       ├─ (3) Contacts Groq SDK with Model "llama-3.3-70b-versatile" + API Key
+       │
+[ Groq Cloud AI ]
+       │
+       ├─ (4) Generates response text using Llama-3.3 model
+       │
+[ FastAPI Server (app.py) ]
+       │
+       ├─ (5) Extracts raw response text from Groq response
+       ├─ (6) Packages response into {"response": "AI text"}
+       │
+[ Browser / Client ]
+       └─ (7) Displays the JSON response to the user
+```
+
+---
+
 ## 🚀 Setup Guide from Scratch (For New Users)
 
 Follow these steps to set up and run this project on any new computer:
@@ -120,7 +170,7 @@ Here is a breakdown of the code functions inside `app.py`:
 
 | Route / Endpoint | Function Name | Input Parameters | What it returns (Output) | What it does (Simple Explanation) |
 | :--- | :--- | :--- | :--- | :--- |
-| **`GET /`** | `welcome_message` | *None* | A JSON object:<br>`{"message": "...", "instructions": "..."}` | **The Welcome Route**: When you visit `http://127.0.0.1:8080/`, it outputs simple instructions on how to test the API. |
+| **`GET /`** | `welcome_message` | *None* | A redirect to `/docs` | **The Welcome Route**: Automatically redirects the browser to the `/docs` page so students see the interactive UI immediately. |
 | **`POST /ask`** | `ask_ai` | `request_data: AskRequest` <br>*(A JSON object containing the user's prompt)* | A JSON object:<br>`{"response": "AI text answer"}` | **The Chat Handler**: Receives your question, forwards it to Groq's AI, gets the response, and sends it back to the browser. |
 
 ---
