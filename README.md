@@ -2,7 +2,7 @@
 
 Welcome to the **Minimal AI Chatbot API**! This project is a simple, end-to-end backend web application designed specifically for students with **zero coding knowledge**.
 
-The goal of this project is to show you how a web server (backend) accepts input data in JSON format, communicates with an Artificial Intelligence (AI) service, and returns the result as a JSON response.
+The goal of this project is to show you how a web server (backend) accepts input data, communicates with an Artificial Intelligence (AI) service, and returns the result as a JSON response.
 
 ---
 
@@ -16,7 +16,7 @@ Nobeth-AI-chatbot-demo/
 ├── .env                  # 🔒 Secret file: Stores your private Groq API key.
 ├── .gitignore            # 🙈 Git controller: Tells Git to ignore .env and virtual environments.
 ├── requirements.txt      # 📦 Package list: Lists the Python libraries our project needs.
-├── app.py                # 🐍 Application core: The main backend code and API logic.
+├── app.py                # 🐍 Application core: The main backend code (under 25 lines!).
 └── README.md             # 📖 This guide: Explains how the project works and how to run it.
 ```
 
@@ -29,12 +29,12 @@ Here is how the API works under the hood when you send a request:
 ```mermaid
 flowchart TD
     subgraph Browser ["🌐 Interactive Documentation (http://127.0.0.1:8080/docs)"]
-        A["👤 Student types prompt under POST /ask"] --> B["📤 Clicks 'Execute' to send JSON request"]
+        A["👤 Student types prompt under POST /ask"] --> B["📤 Clicks 'Execute' to send request"]
         F["📥 Receives and displays JSON response"]
     end
 
     subgraph Server ["🐍 Backend Server (FastAPI)"]
-        B --> C["📥 FastAPI receives the prompt"]
+        B --> C["📥 FastAPI receives prompt parameter"]
         C --> D["🤖 FastAPI calls Groq Cloud SDK"]
         E["📤 Packages text reply as JSON"] --> F
     end
@@ -51,10 +51,10 @@ flowchart TD
 
 ### Step-by-Step Breakdown:
 1. **Student Action**: You open the interactive docs page (`/docs`) in your browser, type a prompt (e.g., `"Explain photosynthesis"`), and click **Execute**.
-2. **The Request**: Your browser sends a `POST` request containing a JSON body `{ "prompt": "Explain photosynthesis" }` to our backend server.
-3. **The Server**: FastAPI receives the prompt, checks that it is not empty, and sends it over to Groq's super-fast AI servers using the **Groq Python SDK**.
+2. **The Request**: Your browser sends a `POST` request to the server with the prompt text parameter.
+3. **The Server**: FastAPI receives the prompt parameter and sends it to Groq's super-fast AI servers using the **Groq Python SDK**.
 4. **The AI**: Groq's AI model (`llama-3.3-70b-versatile`) processes the prompt and generates a text response.
-5. **The Response**: FastAPI gets the text response back, packs it into a JSON object `{"response": "..."}`, and sends it back to your browser.
+5. **The Response**: FastAPI gets the response, packs it into a JSON object `{"response": "..."}`, and sends it back to your browser.
 
 ---
 
@@ -66,15 +66,11 @@ For a quick reference on how our API handles data, review the clean structure be
 | Method | Endpoint | Purpose | Description |
 | :--- | :--- | :--- | :--- |
 | **`GET`** | **`/`** | **User Redirect** | Automatically redirects any visitor from the root URL to the interactive Swagger UI (`/docs`) page. |
-| **`POST`** | **`/ask`** | **AI Inference Handler** | Accepts a user prompt in JSON format, calls the Groq Cloud AI SDK, and returns the AI's response in JSON. |
+| **`POST`** | **`/ask`** | **AI Inference Handler** | Accepts a user prompt parameter, calls the Groq Cloud AI SDK, and returns the AI's response in JSON. |
 
-### 2. Request & Response Payload Structure
-* **POST `/ask` Request JSON**:
-  ```json
-  {
-    "prompt": "What is photosynthesis?"
-  }
-  ```
+### 2. Payload Structure
+* **POST `/ask` Parameter**:
+  - `prompt` (string text)
 * **POST `/ask` Response JSON**:
   ```json
   {
@@ -86,11 +82,11 @@ For a quick reference on how our API handles data, review the clean structure be
 ```text
 [ Browser / Client ] 
        │ 
-       ├─ (1) Sends POST request to '/ask' with {"prompt": "user question"}
+       ├─ (1) Sends POST request to '/ask?prompt=user+question'
        │
 [ FastAPI Server (app.py) ]
        │
-       ├─ (2) Validates the request JSON using the Pydantic schema
+       ├─ (2) Receives the prompt string parameter
        ├─ (3) Contacts Groq SDK with Model "llama-3.3-70b-versatile" + API Key
        │
 [ Groq Cloud AI ]
@@ -160,7 +156,7 @@ uvicorn app:app --reload --port 8080
 
 ### Step 7: Open the Interactive UI
 Open your browser and navigate to:
-👉 **[http://127.0.0.1:8080/docs](http://127.0.0.1:8080/docs)**
+👉 **[http://127.0.0.1:8080/](http://127.0.0.1:8080/)** (This automatically redirects you to the `/docs` UI page!)
 
 ---
 
@@ -170,28 +166,25 @@ Here is a breakdown of the code functions inside `app.py`:
 
 | Route / Endpoint | Function Name | Input Parameters | What it returns (Output) | What it does (Simple Explanation) |
 | :--- | :--- | :--- | :--- | :--- |
-| **`GET /`** | `welcome_message` | *None* | A redirect to `/docs` | **The Welcome Route**: Automatically redirects the browser to the `/docs` page so students see the interactive UI immediately. |
-| **`POST /ask`** | `ask_ai` | `request_data: AskRequest` <br>*(A JSON object containing the user's prompt)* | A JSON object:<br>`{"response": "AI text answer"}` | **The Chat Handler**: Receives your question, forwards it to Groq's AI, gets the response, and sends it back to the browser. |
+| **`GET /`** | `welcome` | *None* | A redirect to `/docs` | **The Welcome Route**: Automatically redirects the browser to the `/docs` page so students see the interactive UI immediately. |
+| **`POST /ask`** | `ask_ai` | `prompt: str` <br>*(The question text)* | A JSON object:<br>`{"response": "AI text answer"}` | **The Chat Handler**: Receives your question, forwards it to Groq's AI, gets the response, and sends it back to the browser. |
 
 ---
 
 ### 🤖 The Groq AI SDK Call
 Inside the `ask_ai` function, we ask Groq to generate a response using this code:
 ```python
-completion = groq_client.chat.completions.create(
+completion = client.chat.completions.create(
     model="llama-3.3-70b-versatile",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": user_prompt}
-    ]
+    messages=[{"role": "user", "content": prompt}]
 )
 ```
 
 #### What do these parameters mean?
 * **`model="llama-3.3-70b-versatile"`**: The specific AI model we want to run.
 * **`messages`**: Instructions for the AI:
-  * **`system`**: Sets the AI's behavior/personality.
-  * **`user`**: The actual question the student typed.
+  * **`role: "user"`**: Specifies that the prompt is coming from the user.
+  * **`content: prompt`**: The actual question the student typed in the input box.
 * **`completion.choices[0].message.content`**: Extracts the generated text response out of the larger API response object.
 
 ---
